@@ -1,0 +1,3 @@
+[workspace]
+members = [ "example_rust_plugin","modules/applications", "modules/plugin", "searchthing", "searchthing-interface"]
+resolver = "2"

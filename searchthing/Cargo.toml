@@ -1,0 +1,15 @@
+[package]
+name = "searchthing"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+searchthing-interface = { path = "../searchthing-interface" }
+applications = { path = "../modules/applications" }
+plugin = { path = "../modules/plugin" }
+egui_inspect = { git = "https://github.com/dmirauta/egui_inspect", branch = "0_28", features = [
+  "logging",
+] }
+egui_extras = { version = "*", features = ["all_loaders"] }
+walkdir = "2.5.0"
+clap = { version = "4.5.16", features = ["derive"] }
