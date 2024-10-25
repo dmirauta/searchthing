@@ -1,6 +1,6 @@
 use clap::Parser;
 use plugin::PluginModule;
-use std::{cell::RefCell, path::PathBuf};
+use std::{cell::RefCell, path::PathBuf, process::exit};
 
 use applications::ApplicationsModule;
 use egui_inspect::{
@@ -126,12 +126,14 @@ impl EguiInspect for SearchThing {
         let mut kbd_activated = false;
         let mut kbd_moved = false;
         let mut scrolling = false;
+        let mut requested_exit = false;
         ui.input(|i| {
             mouse_activated = i.pointer.button_clicked(egui::PointerButton::Primary);
             mouse_moved = i.pointer.time_since_last_movement() < 0.01; // TODO: a less arbitrary
                                                                        // threshhold?
             scrolling = i.pointer.middle_down();
             kbd_activated = i.key_released(Key::Enter);
+            requested_exit = i.key_released(Key::Escape);
             if i.key_released(Key::ArrowUp) && self.keyboard_idx > 0 {
                 self.keyboard_idx -= 1;
                 kbd_moved = true;
@@ -142,6 +144,9 @@ impl EguiInspect for SearchThing {
                 kbd_moved = true;
             }
         });
+        if requested_exit {
+            exit(0);
+        }
 
         let max_height = ui.available_height() / (self.searchers.len() as f32);
         for (j, searcher) in self.searchers.iter_mut().enumerate() {

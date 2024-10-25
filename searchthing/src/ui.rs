@@ -132,7 +132,7 @@ impl WrappedSearcher {
                     // draw match details
                     if !self.cached_matches.is_empty() {
                         ScrollArea::vertical()
-                            .id_source(&self.name)
+                            .id_salt(&self.name)
                             .max_height(max_height)
                             .show(ui, |ui| {
                                 for (i, handle) in self.cached_matches.iter().enumerate() {

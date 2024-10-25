@@ -4,10 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+
 searchthing-interface = { path = "../searchthing-interface" }
 applications = { path = "../modules/applications" }
 plugin = { path = "../modules/plugin" }
-egui_inspect = { git = "https://github.com/dmirauta/egui_inspect", branch = "0_28", features = [
+
+egui_inspect = { git = "https://github.com/dmirauta/egui_inspect", branch = "0_29", features = [
   "logging",
 ] }
 egui_extras = { version = "*", features = ["all_loaders"] }
