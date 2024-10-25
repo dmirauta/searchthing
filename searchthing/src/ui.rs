@@ -28,7 +28,7 @@ impl IconPathCache {
                     .requests
                     .iter()
                     .find(|(_, v)| **v == *name)
-                    .map(|(k, v)| (k.clone(), v.clone()));
+                    .map(|(k, v)| (*k, v.clone()));
                 if let Some((old_req_no, _)) = kv {
                     self.requests.remove(&old_req_no);
                 }
@@ -138,7 +138,7 @@ impl WrappedSearcher {
                                 for (i, handle) in self.cached_matches.iter().enumerate() {
                                     let MatchInfo { name, desc, icon } =
                                         self.searcher.get_match_info(*handle);
-                                    if render_match(ui, &icon, &name, &desc, i) {
+                                    if render_match(ui, icon, name, desc, i) {
                                         self.searcher.handle_selection(*handle);
                                         if !STAY_OPEN.with_borrow_mut(|b| *b) {
                                             std::process::exit(0);

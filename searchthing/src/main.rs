@@ -97,19 +97,13 @@ impl SearchThing {
     }
 }
 
-fn is_highlighted_match(match_counts: &Vec<usize>, i: usize, j: usize, k: usize) -> bool {
-    let mut count = 0;
-    for _i in 0..j {
-        count += match_counts[_i];
-    }
+fn is_highlighted_match(match_counts: &[usize], i: usize, j: usize, k: usize) -> bool {
+    let count: usize = match_counts.iter().cloned().take(j).sum();
     count + i == k
 }
 
-fn kbd_idx(match_counts: &Vec<usize>, i: usize, j: usize) -> usize {
-    let mut count = 0;
-    for _i in 0..j {
-        count += match_counts[_i];
-    }
+fn kbd_idx(match_counts: &[usize], i: usize, j: usize) -> usize {
+    let count: usize = match_counts.iter().cloned().take(j).sum();
     count + i
 }
 
@@ -222,7 +216,8 @@ fn set_opts() -> NativeOptions {
         // NOTE: sadly does not currently seem to work...
         vb.window_level = Some(egui::WindowLevel::AlwaysOnTop);
         vb.window_type = Some(egui::X11WindowType::Dialog);
-        vb.inner_size = Some(Vec2::new(800.0, 400.0));
+        vb.min_inner_size = Some(Vec2::new(800.0, 400.0));
+        vb.max_inner_size = Some(Vec2::new(800.0, 400.0));
         vb
     }));
     NativeOptions {

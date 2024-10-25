@@ -249,5 +249,5 @@ pub fn get_desktop_entries(
         Err(why) => error!("Error reading directory {}: {}", user_path, why),
     }
 
-    Ok(entries.into_iter().map(|(_, entry)| entry).collect())
+    Ok(entries.into_values().collect())
 }

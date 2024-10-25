@@ -10,17 +10,9 @@ fn icons_iterator() -> impl Iterator<Item = DirEntry> {
     WalkDir::new("/usr/share/icons")
         .follow_links(false)
         .into_iter()
-        .chain(WalkDir::new(local_icons).follow_links(false).into_iter())
-        .chain(
-            WalkDir::new("/var/lib/flatpak/exports/share/icons")
-                .follow_links(false)
-                .into_iter(),
-        )
-        .chain(
-            WalkDir::new("/usr/share/pixmaps")
-                .follow_links(false)
-                .into_iter(),
-        )
+        .chain(WalkDir::new(local_icons).follow_links(false))
+        .chain(WalkDir::new("/var/lib/flatpak/exports/share/icons").follow_links(false))
+        .chain(WalkDir::new("/usr/share/pixmaps").follow_links(false))
         .filter_map(|der| der.ok())
 }
 

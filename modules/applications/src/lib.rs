@@ -98,7 +98,7 @@ impl SearchModule for ApplicationsModule {
             match term {
                 Ok(term) => {
                     let mut cmd = Command::new(term);
-                    cmd.arg("-e").arg(&w.entry.exec.trim());
+                    cmd.arg("-e").arg(w.entry.exec.trim());
                     if let Err(why) = cmd.spawn() {
                         error!(
                             "Error: {why}, running desktop entry {:?} (with term, cmd: {cmd:?})",
