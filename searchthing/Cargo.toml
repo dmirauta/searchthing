@@ -7,6 +7,7 @@ edition = "2021"
 
 searchthing-interface = { path = "../searchthing-interface" }
 applications = { path = "../modules/applications" }
+dmenu = { path = "../modules/dmenu" }
 plugin = { path = "../modules/plugin" }
 
 egui_inspect = { git = "https://github.com/dmirauta/egui_inspect", branch = "0_29", features = [

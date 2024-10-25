@@ -20,6 +20,9 @@ pub struct IconPathCache {
 
 impl IconPathCache {
     pub fn get(&mut self, name: &String) -> Icon {
+        if name.is_empty() {
+            return Icon::None;
+        }
         match self.store.get(name) {
             Some(Some(path)) => Icon::Found { path },
             Some(None) => Icon::NotFound,
@@ -66,6 +69,7 @@ pub enum Icon<'a> {
     Searching,
     Found { path: &'a String },
     NotFound,
+    None,
 }
 
 impl<'a> EguiInspect for Icon<'a> {
@@ -85,6 +89,7 @@ impl<'a> EguiInspect for Icon<'a> {
                         .fit_to_exact_size(Vec2::new(48.0, 48.0)),
                 );
             }
+            Icon::None => {}
         };
     }
 }

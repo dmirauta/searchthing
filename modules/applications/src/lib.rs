@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, env, process::Command};
+use std::{env, process::Command};
 
 use find_desktop_entries::{get_desktop_entries, DesktopEntry};
 use log::{error, info};
@@ -52,19 +52,18 @@ impl SearchModule for ApplicationsModule {
         input: &str,
         max_returned: u32,
     ) -> Vec<searchthing_interface::SearchItemHandle> {
-        let mut matches = BTreeMap::new();
+        let mut matches = vec![];
         for (idx, wrapped) in self.entries.iter().enumerate() {
             if let Some(r) = substring_range(&wrapped.search_text, input) {
-                matches.insert(r.start, SearchItemHandle(idx as i32));
+                matches.push((r.start, SearchItemHandle(idx as i32)));
             }
         }
-        let mut res = vec![];
-        for _ in 0..max_returned {
-            if let Some((_, handle)) = matches.pop_first() {
-                res.push(handle);
-            }
-        }
-        res
+        matches.sort_by_key(|i| i.0);
+        matches
+            .into_iter()
+            .take(max_returned as usize)
+            .map(|i| i.1)
+            .collect()
     }
 
     fn info(&self) -> searchthing_interface::SearcherInfo {

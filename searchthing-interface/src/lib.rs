@@ -32,6 +32,7 @@ pub trait SearchModule {
     fn handle_selection(&self, selection: SearchItemHandle);
 }
 
+/// second argument is changed to lowercase within the function, first is not
 pub fn substring_range(string: &str, substring: &str) -> Option<Range<usize>> {
     let start = string.find(&substring.to_lowercase());
     start.map(|si| si..si + substring.len())

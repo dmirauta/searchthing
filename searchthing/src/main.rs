@@ -1,6 +1,7 @@
 use clap::Parser;
+use dmenu::DmenuModule;
 use plugin::PluginModule;
-use std::{cell::RefCell, path::PathBuf, process::exit};
+use std::{cell::RefCell, path::PathBuf, process::exit, thread::sleep, time::Duration};
 
 use applications::ApplicationsModule;
 use egui_inspect::{
@@ -27,6 +28,13 @@ struct SearchThingArgs {
     /// Stay open after selection.
     #[arg(short, long)]
     stay_open: bool,
+    /// Dmenu selection mode (takes newline separated options on stdin and prints what was selected
+    /// in the gui)
+    #[arg(short, long)]
+    dmenu: bool,
+    /// Do an initial search with this text
+    #[arg(short, long)]
+    init_search: Option<String>,
 }
 
 thread_local! {
@@ -38,7 +46,6 @@ thread_local! {
 struct SearchThing {
     search_input: String,
     last_queery: String,
-    // TODO: multiple searchers
     searchers: Vec<WrappedSearcher>,
     icon_path_cache: IconPathCache,
     #[allow(dead_code)]
@@ -48,13 +55,25 @@ struct SearchThing {
 
 impl Default for SearchThing {
     fn default() -> Self {
-        let args = SearchThingArgs::parse();
+        let mut args = SearchThingArgs::parse();
         STAY_OPEN.with_borrow_mut(|b| *b = args.stay_open);
         let max_shown_per_searcher = 10;
-        let mut searchers = vec![WrappedSearcher::new(
-            ApplicationsModule::default(),
-            max_shown_per_searcher,
-        )];
+        let mut searchers = vec![];
+        match args.dmenu {
+            true => {
+                searchers.push(WrappedSearcher::new(
+                    DmenuModule::default(),
+                    max_shown_per_searcher,
+                ));
+                if args.init_search.is_none() {
+                    args.init_search = Some(String::new());
+                }
+            }
+            false => searchers.push(WrappedSearcher::new(
+                ApplicationsModule::default(),
+                max_shown_per_searcher,
+            )),
+        }
         for path in args.plugin {
             let res = unsafe { PluginModule::new(&path) };
             match res {
@@ -62,9 +81,21 @@ impl Default for SearchThing {
                 Err(e) => warn!("Failed to load library {path:?}: {e}"),
             }
         }
+        let search_input = match args.init_search {
+            Some(si) => {
+                for searcher in &mut searchers {
+                    searcher.queery(&si);
+                }
+                // HACK: give the user a moment to release the enter key if calling from the command line,
+                // otherwise a selection is registered immediately
+                sleep(Duration::from_millis(50));
+                si
+            }
+            None => Default::default(),
+        };
         Self {
-            search_input: Default::default(),
-            last_queery: Default::default(),
+            last_queery: search_input.clone(),
+            search_input,
             searchers,
             icon_path_cache: Default::default(),
             max_shown_per_searcher,

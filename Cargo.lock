@@ -973,6 +973,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "dmenu"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "searchthing-interface",
+]
+
+[[package]]
 name = "document-features"
 version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2731,6 +2739,7 @@ version = "0.1.0"
 dependencies = [
  "applications",
  "clap",
+ "dmenu",
  "egui_extras",
  "egui_inspect",
  "plugin",
