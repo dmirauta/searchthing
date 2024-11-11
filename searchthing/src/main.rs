@@ -18,22 +18,24 @@ use ui::{IconPathCache, WrappedSearcher};
 mod icon_search;
 mod ui;
 
-/// A program that displays a search bar, a set of options that are filtered by it, and acts on
-/// selection. The options, filtering on search and action depends on active modules, which can be
-/// provided through external plugins.
+/// A program that displays a search bar, a set of options that are filtered by user input,
+/// and acts on selection. The options provided, filtering and action perfomed depends on active modules,
+/// which can be provided through external plugins.
 #[derive(Parser)]
 struct SearchThingArgs {
-    /// Path to a shared object exporting SearchModule functions, can supply argument many times.
+    /// Path to a shared object exporting SearchModule functions, can supply this argument many
+    /// times to load multiple plugins.
     #[arg(short, long, value_parser)]
     plugin: Vec<PathBuf>,
-    /// Stay open after selection.
+    /// Stay open after a selection has been made.
     #[arg(short, long)]
     stay_open: bool,
-    /// Dmenu selection mode (takes newline separated options on stdin and prints what was selected
-    /// in the gui)
+    /// Enable the dmenu selection mode, can be followed by an optional prompt,
+    /// e.g. -d "Select from the following".
+    /// Options are specified by lines in stdin. The selected option is printed on stdout.
     #[arg(short, long)]
-    dmenu: bool,
-    /// Do an initial search with this text
+    dmenu: Option<Option<String>>,
+    /// Do an initial search with this text.
     #[arg(short, long)]
     init_search: Option<String>,
 }
@@ -61,16 +63,16 @@ impl Default for SearchThing {
         let max_shown_per_searcher = 10;
         let mut searchers = vec![];
         match args.dmenu {
-            true => {
+            Some(prompt) => {
                 searchers.push(WrappedSearcher::new(
-                    DmenuModule::default(),
+                    DmenuModule::new(prompt),
                     max_shown_per_searcher,
                 ));
                 if args.init_search.is_none() {
                     args.init_search = Some(String::new());
                 }
             }
-            false => searchers.push(WrappedSearcher::new(
+            None => searchers.push(WrappedSearcher::new(
                 ApplicationsModule::default(),
                 max_shown_per_searcher,
             )),

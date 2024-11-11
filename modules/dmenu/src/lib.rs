@@ -10,8 +10,8 @@ pub struct DmenuModule {
     options: Vec<String>,
 }
 
-impl Default for DmenuModule {
-    fn default() -> Self {
+impl DmenuModule {
+    pub fn new(prompt: Option<String>) -> Self {
         let options = stdin()
             .lines()
             .filter_map(|lr| match lr {
@@ -20,7 +20,7 @@ impl Default for DmenuModule {
             })
             .collect();
         Self {
-            name: "Drun".into(),
+            name: prompt.unwrap_or("Dmenu".into()),
             icon: "system-search".into(),
             options,
         }
