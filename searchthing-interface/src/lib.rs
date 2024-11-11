@@ -1,5 +1,7 @@
 use std::ops::Range;
 
+use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
+
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct SearchItemHandle(pub i32);
@@ -36,4 +38,28 @@ pub trait SearchModule {
 pub fn substring_range(string: &str, substring: &str) -> Option<Range<usize>> {
     let start = string.find(&substring.to_lowercase());
     start.map(|si| si..si + substring.len())
+}
+
+// TODO: Merge [SearchMethod::match_idxs] output into [MatchInfo], so as to not have to compute
+// the match twice or assume how a possibly external searcher is searching
+
+pub trait SearchMethod {
+    fn match_idxs(search_text: &str, queery_text: &str) -> Option<(i64, Vec<usize>)>;
+}
+
+#[allow(dead_code)]
+pub struct BasicSearch;
+
+impl SearchMethod for BasicSearch {
+    fn match_idxs(search_text: &str, queery_text: &str) -> Option<(i64, Vec<usize>)> {
+        substring_range(search_text, queery_text).map(|r| (-(r.start as i64), r.collect()))
+    }
+}
+
+pub struct FuzzySearch;
+
+impl SearchMethod for FuzzySearch {
+    fn match_idxs(search_text: &str, queery_text: &str) -> Option<(i64, Vec<usize>)> {
+        SkimMatcherV2::default().fuzzy_indices(search_text, queery_text)
+    }
 }

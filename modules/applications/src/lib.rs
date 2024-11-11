@@ -2,7 +2,7 @@ use std::{env, process::Command};
 
 use find_desktop_entries::{get_desktop_entries, DesktopEntry};
 use log::{error, info};
-use searchthing_interface::{substring_range, SearchItemHandle, SearchModule};
+use searchthing_interface::{FuzzySearch, SearchItemHandle, SearchMethod, SearchModule};
 
 mod find_desktop_entries;
 
@@ -54,13 +54,14 @@ impl SearchModule for ApplicationsModule {
     ) -> Vec<searchthing_interface::SearchItemHandle> {
         let mut matches = vec![];
         for (idx, wrapped) in self.entries.iter().enumerate() {
-            if let Some(r) = substring_range(&wrapped.search_text, input) {
-                matches.push((r.start, SearchItemHandle(idx as i32)));
+            if let Some((s, _)) = FuzzySearch::match_idxs(&wrapped.search_text, input) {
+                matches.push((s, SearchItemHandle(idx as i32)));
             }
         }
         matches.sort_by_key(|i| i.0);
         matches
             .into_iter()
+            .rev()
             .take(max_returned as usize)
             .map(|i| i.1)
             .collect()

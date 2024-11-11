@@ -127,34 +127,29 @@ impl WrappedSearcher {
         max_height: f32,
     ) {
         DEFAULT_FRAME_STYLE.to_frame().show(ui, |ui| {
-            ui.columns(2, |cols| {
-                DEFAULT_FRAME_STYLE.to_frame().show(&mut cols[0], |ui| {
-                    // draw app details
-                    ui.label(&self.name);
-                });
+            ui.strong(&self.name);
 
-                DEFAULT_FRAME_STYLE.to_frame().show(&mut cols[1], |ui| {
-                    // draw match details
-                    if !self.cached_matches.is_empty() {
-                        ScrollArea::vertical()
-                            .id_salt(&self.name)
-                            .max_height(max_height)
-                            .show(ui, |ui| {
-                                for (i, handle) in self.cached_matches.iter().enumerate() {
-                                    let MatchInfo { name, desc, icon } =
-                                        self.searcher.get_match_info(*handle);
-                                    if render_match(ui, icon, name, desc, i) {
-                                        self.searcher.handle_selection(*handle);
-                                        if !STAY_OPEN.with_borrow_mut(|b| *b) {
-                                            std::process::exit(0);
-                                        }
+            DEFAULT_FRAME_STYLE.to_frame().show(ui, |ui| {
+                // draw match details
+                if !self.cached_matches.is_empty() {
+                    ScrollArea::vertical()
+                        .id_salt(&self.name)
+                        .max_height(max_height)
+                        .show(ui, |ui| {
+                            for (i, handle) in self.cached_matches.iter().enumerate() {
+                                let MatchInfo { name, desc, icon } =
+                                    self.searcher.get_match_info(*handle);
+                                if render_match(ui, icon, name, desc, i) {
+                                    self.searcher.handle_selection(*handle);
+                                    if !STAY_OPEN.with_borrow_mut(|b| *b) {
+                                        std::process::exit(0);
                                     }
                                 }
-                            });
-                    } else {
-                        ui.label("no matches");
-                    }
-                });
+                            }
+                        });
+                } else {
+                    ui.label("no matches");
+                }
             });
         });
     }

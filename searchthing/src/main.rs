@@ -1,4 +1,5 @@
 use clap::Parser;
+use core::f32;
 use dmenu::DmenuModule;
 use plugin::PluginModule;
 use std::{cell::RefCell, path::PathBuf, process::exit, thread::sleep, time::Duration};
@@ -8,10 +9,10 @@ use egui_inspect::{
     eframe::{CreationContext, NativeOptions, WindowBuilderHook},
     egui::{self, Color32, Key, RichText, Stroke, Vec2},
     logging::{log::warn, setup_mixed_logger, FileLogOption},
-    utils::concat_rich_text,
+    search_select::non_contiguous_highlight,
     EframeMain, EguiInspect, FrameStyle, DEFAULT_FRAME_STYLE,
 };
-use searchthing_interface::substring_range;
+use searchthing_interface::{FuzzySearch, SearchMethod};
 use ui::{IconPathCache, WrappedSearcher};
 
 mod icon_search;
@@ -140,7 +141,8 @@ fn kbd_idx(match_counts: &[usize], i: usize, j: usize) -> usize {
 
 impl EguiInspect for SearchThing {
     fn inspect_mut(&mut self, _label: &str, ui: &mut egui::Ui) {
-        let resp = ui.text_edit_singleline(&mut self.search_input);
+        let resp =
+            ui.add(egui::TextEdit::singleline(&mut self.search_input).desired_width(f32::INFINITY));
         resp.request_focus();
         if resp.changed() && !self.search_input.is_empty() {
             for searcher in &mut self.searchers {
@@ -150,7 +152,7 @@ impl EguiInspect for SearchThing {
         };
 
         let match_counts = self.match_counts();
-        let total_matches = match_counts.iter().sum();
+        let total_matches = match_counts.iter().sum::<usize>();
 
         let mut mouse_activated = false;
         let mut mouse_moved = false;
@@ -168,7 +170,7 @@ impl EguiInspect for SearchThing {
             if i.key_released(Key::ArrowUp) && self.keyboard_idx > 0 {
                 self.keyboard_idx -= 1;
                 kbd_moved = true;
-            } else if i.key_released(Key::ArrowDown) && self.keyboard_idx < total_matches
+            } else if i.key_released(Key::ArrowDown) && self.keyboard_idx < total_matches - 1
             // TODO: support holding after delay, but do not trigger more than once per frame...
             {
                 self.keyboard_idx += 1;
@@ -198,23 +200,52 @@ impl EguiInspect for SearchThing {
                             ui.horizontal(|ui| {
                                 self.icon_path_cache.get(&icon_name.into()).inspect("", ui);
                                 ui.vertical(|ui| {
-                                    match substring_range(
+                                    let name_mtch = FuzzySearch::match_idxs(
                                         &match_name.to_lowercase(),
                                         &self.last_queery,
-                                    ) {
-                                        Some(mr) => {
-                                            let prefix = &match_name[..mr.start];
-                                            let mid = &match_name[mr.start..mr.end];
-                                            let suffix = &match_name[mr.end..];
-                                            ui.label(concat_rich_text(vec![
-                                                RichText::new(prefix).color(Color32::WHITE),
-                                                RichText::new(mid).color(Color32::GREEN),
-                                                RichText::new(suffix).color(Color32::WHITE),
-                                            ]))
-                                        }
-                                        None => ui.label(match_name),
+                                    );
+                                    let desc_mtch = FuzzySearch::match_idxs(
+                                        &desc.to_lowercase(),
+                                        &self.last_queery,
+                                    );
+                                    let mtype = match (name_mtch, desc_mtch) {
+                                        (Some((ns, nidxs)), Some((ds, didxs))) => match ns > ds {
+                                            true => Some((true, nidxs)),
+                                            false => Some((false, didxs)),
+                                        },
+                                        (Some((_, idxs)), None) => Some((true, idxs)),
+                                        (None, Some((_, idxs))) => Some((false, idxs)),
+                                        (None, None) => None,
                                     };
-                                    ui.label(desc);
+                                    match mtype {
+                                        Some((is_name_mtch, idxs)) => {
+                                            if is_name_mtch {
+                                                ui.label(non_contiguous_highlight(
+                                                    match_name,
+                                                    &idxs,
+                                                    Color32::GREEN,
+                                                    Color32::WHITE,
+                                                ));
+                                                ui.label(desc);
+                                            } else {
+                                                ui.label(
+                                                    RichText::new(match_name).color(Color32::WHITE),
+                                                );
+                                                ui.label(non_contiguous_highlight(
+                                                    desc,
+                                                    &idxs,
+                                                    Color32::GREEN,
+                                                    Color32::GRAY,
+                                                ));
+                                            }
+                                        }
+                                        None => {
+                                            ui.label(
+                                                RichText::new(match_name).color(Color32::WHITE),
+                                            );
+                                            ui.label(desc);
+                                        }
+                                    }
                                 });
                             });
                             ui.separator();

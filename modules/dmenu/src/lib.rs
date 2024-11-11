@@ -1,6 +1,6 @@
 use std::{io::stdin, process::exit};
 
-use searchthing_interface::{substring_range, SearchItemHandle, SearchModule};
+use searchthing_interface::{FuzzySearch, SearchItemHandle, SearchMethod, SearchModule};
 
 static EMPTY: &str = "";
 
@@ -36,13 +36,14 @@ impl SearchModule for DmenuModule {
     ) -> Vec<searchthing_interface::SearchItemHandle> {
         let mut matches = vec![];
         for (idx, opt) in self.options.iter().enumerate() {
-            if let Some(r) = substring_range(&opt.to_lowercase(), input) {
-                matches.push((r.start, SearchItemHandle(idx as i32)));
+            if let Some((s, _)) = FuzzySearch::match_idxs(&opt.to_lowercase(), input) {
+                matches.push((s, SearchItemHandle(idx as i32)));
             }
         }
         matches.sort_by_key(|i| i.0);
         matches
             .into_iter()
+            .rev()
             .take(max_returned as usize)
             .map(|i| i.1)
             .collect()
