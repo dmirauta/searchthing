@@ -1,4 +1,4 @@
-use std::{io::stdin, process::exit};
+use std::io::stdin;
 
 use searchthing_interface::{FuzzySearch, SearchItemHandle, SearchMethod, SearchModule};
 
@@ -49,14 +49,14 @@ impl SearchModule for DmenuModule {
             .collect()
     }
 
-    fn info(&self) -> searchthing_interface::SearcherInfo {
+    fn mod_info(&self) -> searchthing_interface::SearcherInfo {
         searchthing_interface::SearcherInfo {
             name: &self.name,
             icon: &self.icon,
         }
     }
 
-    fn get_match_info(&self, item: SearchItemHandle) -> searchthing_interface::MatchInfo {
+    fn match_info(&self, item: SearchItemHandle) -> searchthing_interface::MatchInfo {
         let opt = self.options.get(item.0 as usize).unwrap();
         // NOTE: handles should be valid, as they should have been obtained through the queery fn
         searchthing_interface::MatchInfo {
@@ -69,6 +69,5 @@ impl SearchModule for DmenuModule {
     fn handle_selection(&self, selection: SearchItemHandle) {
         let opt = self.options.get(selection.0 as usize).unwrap();
         println!("{}", opt);
-        exit(0);
     }
 }

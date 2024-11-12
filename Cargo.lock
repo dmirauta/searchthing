@@ -2900,6 +2900,7 @@ dependencies = [
  "egui_inspect",
  "plugin",
  "searchthing-interface",
+ "symbols",
  "walkdir",
 ]
 
@@ -3119,6 +3120,13 @@ checksum = "6e44e288cd960318917cbd540340968b90becc8bc81f171345d706e7a89d9d70"
 dependencies = [
  "kurbo",
  "siphasher",
+]
+
+[[package]]
+name = "symbols"
+version = "0.1.0"
+dependencies = [
+ "searchthing-interface",
 ]
 
 [[package]]

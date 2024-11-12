@@ -1,3 +1,5 @@
+//! Allows loading of external plugins from shared objects.
+
 use libloading::{Library, Symbol};
 use searchthing_interface::{SearchItemHandle, SearchModule};
 use std::{
@@ -48,6 +50,7 @@ impl<'a> PlugMethods<'a> {
     }
 }
 
+/// A wrapper module for external plugins.
 pub struct PluginModule {
     plug_name: String,
     plug_icon: String,
@@ -68,7 +71,7 @@ impl PluginModule {
 }
 
 impl SearchModule for PluginModule {
-    fn info(&self) -> searchthing_interface::SearcherInfo {
+    fn mod_info(&self) -> searchthing_interface::SearcherInfo {
         searchthing_interface::SearcherInfo {
             name: &self.plug_name,
             icon: &self.plug_icon,
@@ -83,6 +86,7 @@ impl SearchModule for PluginModule {
         let mut res = vec![];
         unsafe {
             let methods = PlugMethods::get(&self.lib).unwrap();
+            // TODO: Should convert to CStr?
             let mut res_ptr = (methods.queery)(input.as_ptr(), max_returned);
             while *res_ptr != SearchItemHandle::TERMINATOR {
                 res.push(*res_ptr);
@@ -92,7 +96,7 @@ impl SearchModule for PluginModule {
         res
     }
 
-    fn get_match_info(
+    fn match_info(
         &self,
         item: searchthing_interface::SearchItemHandle,
     ) -> searchthing_interface::MatchInfo {

@@ -1,10 +1,11 @@
 [workspace]
 members = [
-  "example_rust_plugin",
-  "modules/applications",
-  "modules/plugin",
-  "modules/dmenu",
   "searchthing",
   "searchthing-interface",
+  "modules/applications",
+  "modules/plugin",
+  "example_rust_plugin",
+  "modules/dmenu",
+  "modules/symbols",
 ]
 resolver = "2"

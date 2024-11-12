@@ -4,7 +4,9 @@ use egui_inspect::{
     egui::{self, Color32, RichText, ScrollArea, Vec2},
     EguiInspect, DEFAULT_FRAME_STYLE,
 };
-use searchthing_interface::{MatchInfo, SearchItemHandle, SearchModule, SearcherInfo};
+use searchthing_interface::{
+    char_from_codepoint, MatchInfo, SearchItemHandle, SearchModule, SearcherInfo,
+};
 
 use crate::{icon_search::find_icons, STAY_OPEN};
 
@@ -22,6 +24,11 @@ impl IconPathCache {
     pub fn get(&mut self, name: &String) -> Icon {
         if name.is_empty() {
             return Icon::None;
+        }
+        if name[..2].eq("U+") {
+            return char_from_codepoint(name)
+                .map(|c| Icon::Unicode { c })
+                .unwrap_or(Icon::NotFound);
         }
         match self.store.get(name) {
             Some(Some(path)) => Icon::Found { path },
@@ -69,6 +76,7 @@ pub enum Icon<'a> {
     Searching,
     Found { path: &'a String },
     NotFound,
+    Unicode { c: char },
     None,
 }
 
@@ -90,6 +98,9 @@ impl<'a> EguiInspect for Icon<'a> {
                 );
             }
             Icon::None => {}
+            Icon::Unicode { c } => {
+                ui.label(RichText::new(c.to_string()));
+            }
         };
     }
 }
@@ -105,7 +116,7 @@ pub struct WrappedSearcher {
 
 impl WrappedSearcher {
     pub fn new(searcher: impl SearchModule + 'static, max_shown: u32) -> Self {
-        let SearcherInfo { name, icon } = searcher.info();
+        let SearcherInfo { name, icon } = searcher.mod_info();
         Self {
             name: name.into(),
             icon: icon.into(),
@@ -138,11 +149,12 @@ impl WrappedSearcher {
                         .show(ui, |ui| {
                             for (i, handle) in self.cached_matches.iter().enumerate() {
                                 let MatchInfo { name, desc, icon } =
-                                    self.searcher.get_match_info(*handle);
+                                    self.searcher.match_info(*handle);
                                 if render_match(ui, icon, name, desc, i) {
                                     self.searcher.handle_selection(*handle);
+
                                     if !STAY_OPEN.with_borrow_mut(|b| *b) {
-                                        std::process::exit(0);
+                                        ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
                                     }
                                 }
                             }

@@ -1,8 +1,8 @@
 use clap::Parser;
-use core::f32;
 use dmenu::DmenuModule;
 use plugin::PluginModule;
 use std::{cell::RefCell, path::PathBuf, process::exit, thread::sleep, time::Duration};
+use symbols::SymbolsModule;
 
 use applications::ApplicationsModule;
 use egui_inspect::{
@@ -28,13 +28,18 @@ struct SearchThingArgs {
     #[arg(short, long, value_parser)]
     plugin: Vec<PathBuf>,
     /// Stay open after a selection has been made.
-    #[arg(short, long)]
+    #[arg(long)]
     stay_open: bool,
     /// Enable the dmenu selection mode, can be followed by an optional prompt,
     /// e.g. -d "Select from the following".
     /// Options are specified by lines in stdin. The selected option is printed on stdout.
     #[arg(short, long)]
     dmenu: Option<Option<String>>,
+    /// Unicode symbol picker mode.
+    #[arg(short, long)]
+    symbols: bool,
+    #[arg(short, long)]
+    no_builtin_modules: bool,
     /// Do an initial search with this text.
     #[arg(short, long)]
     init_search: Option<String>,
@@ -62,20 +67,24 @@ impl Default for SearchThing {
         STAY_OPEN.with_borrow_mut(|b| *b = args.stay_open);
         let max_shown_per_searcher = 10;
         let mut searchers = vec![];
-        match args.dmenu {
-            Some(prompt) => {
-                searchers.push(WrappedSearcher::new(
-                    DmenuModule::new(prompt),
-                    max_shown_per_searcher,
-                ));
-                if args.init_search.is_none() {
-                    args.init_search = Some(String::new());
-                }
+        if let Some(prompt) = args.dmenu {
+            searchers.push(WrappedSearcher::new(
+                DmenuModule::new(prompt),
+                max_shown_per_searcher,
+            ));
+            if args.init_search.is_none() {
+                args.init_search = Some(String::new());
             }
-            None => searchers.push(WrappedSearcher::new(
+        } else if args.symbols {
+            searchers.push(WrappedSearcher::new(
+                SymbolsModule::default(),
+                max_shown_per_searcher,
+            ));
+        } else if !args.no_builtin_modules {
+            searchers.push(WrappedSearcher::new(
                 ApplicationsModule::default(),
                 max_shown_per_searcher,
-            )),
+            ));
         }
         for path in args.plugin {
             let res = unsafe { PluginModule::new(&path) };

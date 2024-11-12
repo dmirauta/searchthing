@@ -24,11 +24,11 @@ pub struct MatchInfo<'a> {
 
 /// required methods for a SearchThing module
 pub trait SearchModule {
-    fn info(&self) -> SearcherInfo;
+    fn mod_info(&self) -> SearcherInfo;
 
     fn queery(&self, input: &str, max_returned: u32) -> Vec<SearchItemHandle>;
 
-    fn get_match_info(&self, item: SearchItemHandle) -> MatchInfo;
+    fn match_info(&self, item: SearchItemHandle) -> MatchInfo;
 
     // NOTE: the word handle is used with two different meanings here
     fn handle_selection(&self, selection: SearchItemHandle);
@@ -62,4 +62,9 @@ impl SearchMethod for FuzzySearch {
     fn match_idxs(search_text: &str, queery_text: &str) -> Option<(i64, Vec<usize>)> {
         SkimMatcherV2::default().fuzzy_indices(search_text, queery_text)
     }
+}
+
+pub fn char_from_codepoint(codepoint: &str) -> Option<char> {
+    let u = u32::from_str_radix(&codepoint[2..], 16).ok()?;
+    char::from_u32(u)
 }
