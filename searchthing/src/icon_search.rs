@@ -8,11 +8,10 @@ fn icons_iterator() -> impl Iterator<Item = DirEntry> {
     let home_path = PathBuf::from(env::var("HOME").unwrap());
     let local_icons = home_path.join(".local/share/icons");
     WalkDir::new("/usr/share/icons")
-        .follow_links(false)
         .into_iter()
-        .chain(WalkDir::new(local_icons).follow_links(false))
-        .chain(WalkDir::new("/var/lib/flatpak/exports/share/icons").follow_links(false))
-        .chain(WalkDir::new("/usr/share/pixmaps").follow_links(false))
+        .chain(WalkDir::new(local_icons))
+        .chain(WalkDir::new("/var/lib/flatpak/exports/share/icons"))
+        .chain(WalkDir::new("/usr/share/pixmaps"))
         .filter_map(|der| der.ok())
 }
 
@@ -27,11 +26,13 @@ fn find_icon_test() {
     dbg!(find_icon("neovim"));
 }
 
-/// retrieve more than one icons in a single directory walk
-pub fn find_icons(mut names: Vec<String>) -> HashMap<String, DirEntry> {
+pub fn find_files(
+    files_iter: impl Iterator<Item = DirEntry>,
+    mut names: Vec<String>,
+) -> HashMap<String, DirEntry> {
     let mut res = HashMap::new();
     if !names.is_empty() {
-        for de in icons_iterator() {
+        for de in files_iter {
             let file_name = de.file_name().to_string_lossy();
             let _match = names
                 .iter()
@@ -44,4 +45,9 @@ pub fn find_icons(mut names: Vec<String>) -> HashMap<String, DirEntry> {
         }
     }
     res
+}
+
+/// retrieve more than one icons in a single directory walk
+pub fn find_icons(icon_names: Vec<String>) -> HashMap<String, DirEntry> {
+    find_files(icons_iterator(), icon_names)
 }

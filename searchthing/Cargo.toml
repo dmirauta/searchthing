@@ -11,9 +11,9 @@ dmenu = { path = "../modules/dmenu" }
 plugin = { path = "../modules/plugin" }
 symbols = { path = "../modules/symbols" }
 
-egui_inspect = { git = "https://github.com/dmirauta/egui_inspect", branch = "0_29", features = [
+egui_inspect = { git = "https://github.com/dmirauta/egui_inspect", branch = "0_31", features = [
   "logging",
 ] }
-egui_extras = { version = "*", features = ["all_loaders"] }
+egui_extras = { version = "0.31", features = ["all_loaders"] }
 walkdir = "2.5.0"
-clap = { version = "4.5.16", features = ["derive"] }
+clap = { version = "4.5", features = ["derive"] }

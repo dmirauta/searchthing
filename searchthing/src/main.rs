@@ -1,5 +1,6 @@
 use clap::Parser;
 use dmenu::DmenuModule;
+use fonts::custom_font_def;
 use plugin::PluginModule;
 use std::{cell::RefCell, path::PathBuf, process::exit, thread::sleep, time::Duration};
 use symbols::SymbolsModule;
@@ -13,13 +14,14 @@ use egui_inspect::{
     EframeMain, EguiInspect, FrameStyle, DEFAULT_FRAME_STYLE,
 };
 use searchthing_interface::{FuzzySearch, SearchMethod};
-use ui::{IconPathCache, WrappedSearcher};
+use ui::{AppIconPathCache, WrappedSearcher};
 
+mod fonts;
 mod icon_search;
 mod ui;
 
 /// A program that displays a search bar, a set of options that are filtered by user input,
-/// and acts on selection. The options provided, filtering and action perfomed depends on active modules,
+/// and acts on selection. The options provided, filtering and action performed depends on active modules,
 /// which can be provided through external plugins.
 #[derive(Parser)]
 struct SearchThingArgs {
@@ -43,6 +45,13 @@ struct SearchThingArgs {
     /// Do an initial search with this text.
     #[arg(short, long)]
     init_search: Option<String>,
+    /// Override the application text font
+    #[arg(long)]
+    main_font: Option<String>,
+    /// Fallback font for unicode symbols.
+    /// Note: egui does not seem to currently support colored symbols.
+    #[arg(long)]
+    symbols_font: Option<String>,
 }
 
 thread_local! {
@@ -55,15 +64,22 @@ struct SearchThing {
     search_input: String,
     last_queery: String,
     searchers: Vec<WrappedSearcher>,
-    icon_path_cache: IconPathCache,
+    icon_path_cache: AppIconPathCache,
     #[allow(dead_code)]
     max_shown_per_searcher: u32,
     keyboard_idx: usize,
 }
 
-impl Default for SearchThing {
-    fn default() -> Self {
+impl SearchThing {
+    fn new(cc: &CreationContext) -> Self {
         let mut args = SearchThingArgs::parse();
+
+        egui_extras::install_image_loaders(&cc.egui_ctx);
+        cc.egui_ctx.set_fonts(custom_font_def(
+            args.main_font.as_deref(),
+            args.symbols_font.as_deref(),
+        ));
+
         STAY_OPEN.with_borrow_mut(|b| *b = args.stay_open);
         let max_shown_per_searcher = 10;
         let mut searchers = vec![];
@@ -116,13 +132,6 @@ impl Default for SearchThing {
     }
 }
 
-impl SearchThing {
-    fn new(cc: &CreationContext) -> Self {
-        egui_extras::install_image_loaders(&cc.egui_ctx);
-        Self::default()
-    }
-}
-
 static HIGHLIGHT_FRAME: FrameStyle = FrameStyle {
     stroke: Stroke {
         width: 0.9,
@@ -140,14 +149,13 @@ impl SearchThing {
     }
 }
 
-fn is_highlighted_match(match_counts: &[usize], i: usize, j: usize, k: usize) -> bool {
-    let count: usize = match_counts.iter().cloned().take(j).sum();
-    count + i == k
-}
-
 fn kbd_idx(match_counts: &[usize], i: usize, j: usize) -> usize {
     let count: usize = match_counts.iter().cloned().take(j).sum();
     count + i
+}
+
+fn is_highlighted_match(match_counts: &[usize], i: usize, j: usize, k: usize) -> bool {
+    kbd_idx(match_counts, i, j) == k
 }
 
 impl EguiInspect for SearchThing {

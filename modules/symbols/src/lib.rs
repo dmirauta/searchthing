@@ -20,6 +20,7 @@ pub struct SymbolsModule {
 
 impl Default for SymbolsModule {
     fn default() -> Self {
+        // TODO: make this a compile time calculated ArrayVec?
         let options = CODEPOINTS
             .lines()
             .map(|line| {

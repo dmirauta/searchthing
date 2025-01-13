@@ -11,7 +11,7 @@ use searchthing_interface::{
 use crate::{icon_search::find_icons, STAY_OPEN};
 
 #[derive(Default)]
-pub struct IconPathCache {
+pub struct AppIconPathCache {
     /// name to path map
     store: HashMap<String, Option<String>>,
     // TODO: distinguish between IconName(String) and IconPath(String)
@@ -20,7 +20,7 @@ pub struct IconPathCache {
     req_no: u64,
 }
 
-impl IconPathCache {
+impl AppIconPathCache {
     pub fn get(&mut self, name: &String) -> Icon {
         if name.is_empty() {
             return Icon::None;
@@ -80,7 +80,7 @@ pub enum Icon<'a> {
     None,
 }
 
-impl<'a> EguiInspect for Icon<'a> {
+impl EguiInspect for Icon<'_> {
     fn inspect(&self, _label: &str, ui: &mut egui_inspect::egui::Ui) {
         match self {
             Icon::Searching { .. } => {
@@ -99,7 +99,8 @@ impl<'a> EguiInspect for Icon<'a> {
             }
             Icon::None => {}
             Icon::Unicode { c } => {
-                ui.label(RichText::new(c.to_string()));
+                let rt = RichText::new(c.to_string()).size(48.0);
+                ui.label(rt);
             }
         };
     }
