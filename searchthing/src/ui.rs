@@ -1,14 +1,14 @@
 use std::collections::{BTreeMap, HashMap};
 
 use egui_inspect::{
-    egui::{self, Color32, RichText, ScrollArea, Vec2},
+    egui::{self, vec2, Color32, RichText, ScrollArea, Vec2},
     EguiInspect, DEFAULT_FRAME_STYLE,
 };
 use searchthing_interface::{
     char_from_codepoint, MatchInfo, SearchItemHandle, SearchModule, SearcherInfo,
 };
 
-use crate::{icon_search::find_icons, STAY_OPEN};
+use crate::{fonts::SYMBOLCACHE, icon_search::find_icons, STAY_OPEN};
 
 #[derive(Default)]
 pub struct AppIconPathCache {
@@ -99,8 +99,9 @@ impl EguiInspect for Icon<'_> {
             }
             Icon::None => {}
             Icon::Unicode { c } => {
-                let rt = RichText::new(c.to_string()).size(48.0);
-                ui.label(rt);
+                SYMBOLCACHE.with_borrow_mut(|sc| {
+                    sc.inspect(ui, *c, vec2(48.0, 48.0));
+                });
             }
         };
     }

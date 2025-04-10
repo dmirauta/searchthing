@@ -1,6 +1,6 @@
 use clap::Parser;
 use dmenu::DmenuModule;
-use fonts::custom_font_def;
+use fonts::custom_egui_font_def;
 use plugin::PluginModule;
 use std::{cell::RefCell, path::PathBuf, process::exit, thread::sleep, time::Duration};
 use symbols::SymbolsModule;
@@ -75,7 +75,7 @@ impl SearchThing {
         let mut args = SearchThingArgs::parse();
 
         egui_extras::install_image_loaders(&cc.egui_ctx);
-        cc.egui_ctx.set_fonts(custom_font_def(
+        cc.egui_ctx.set_fonts(custom_egui_font_def(
             args.main_font.as_deref(),
             args.symbols_font.as_deref(),
         ));
