@@ -20,6 +20,8 @@ mod fonts;
 mod icon_search;
 mod ui;
 
+// TODO: Load cliarg defaults from a config file
+
 /// A program that displays a search bar, a set of options that are filtered by user input,
 /// and acts on selection. The options provided, filtering and action performed depends on active modules,
 /// which can be provided through external plugins.
@@ -48,14 +50,21 @@ struct SearchThingArgs {
     /// Override the application text font
     #[arg(long)]
     main_font: Option<String>,
-    /// Fallback font for unicode symbols.
-    /// Note: egui does not seem to currently support colored symbols.
+    /// Largely used as a fallback font for unicode symbols. May be provided multiple times.
+    #[arg(long, value_parser)]
+    secondary_font: Vec<String>,
+    /// Maximum number of results to be returned by each searcher
     #[arg(long)]
-    symbols_font: Option<String>,
+    queery_max: Option<u32>,
+    #[arg(long)]
+    icon_size: Option<f32>,
 }
 
+// NOTE: only needs to be modified at the start, could unsafe mut a static? (without RefCell)
 thread_local! {
     pub static STAY_OPEN: RefCell<bool> = Default::default();
+    pub static ICONSIZE: RefCell<f32> = Default::default();
+    // TODO: expose text size, primary, secondary, highlight, frame and background colors
 }
 
 #[derive(EframeMain)]
@@ -65,8 +74,6 @@ struct SearchThing {
     last_queery: String,
     searchers: Vec<WrappedSearcher>,
     icon_path_cache: AppIconPathCache,
-    #[allow(dead_code)]
-    max_shown_per_searcher: u32,
     keyboard_idx: usize,
 }
 
@@ -75,37 +82,30 @@ impl SearchThing {
         let mut args = SearchThingArgs::parse();
 
         egui_extras::install_image_loaders(&cc.egui_ctx);
-        cc.egui_ctx.set_fonts(custom_egui_font_def(
-            args.main_font.as_deref(),
-            args.symbols_font.as_deref(),
-        ));
+        cc.egui_ctx
+            .set_fonts(custom_egui_font_def(args.main_font, args.secondary_font));
 
         STAY_OPEN.with_borrow_mut(|b| *b = args.stay_open);
-        let max_shown_per_searcher = 10;
+        ICONSIZE.with_borrow_mut(|b| *b = args.icon_size.unwrap_or(48.0));
+        let max_shown = args.queery_max.unwrap_or(10);
         let mut searchers = vec![];
         if let Some(prompt) = args.dmenu {
-            searchers.push(WrappedSearcher::new(
-                DmenuModule::new(prompt),
-                max_shown_per_searcher,
-            ));
+            searchers.push(WrappedSearcher::new(DmenuModule::new(prompt), max_shown));
             if args.init_search.is_none() {
                 args.init_search = Some(String::new());
             }
         } else if args.symbols {
-            searchers.push(WrappedSearcher::new(
-                SymbolsModule::default(),
-                max_shown_per_searcher,
-            ));
+            searchers.push(WrappedSearcher::new(SymbolsModule::default(), max_shown));
         } else if !args.no_builtin_modules {
             searchers.push(WrappedSearcher::new(
                 ApplicationsModule::default(),
-                max_shown_per_searcher,
+                max_shown,
             ));
         }
         for path in args.plugin {
             let res = unsafe { PluginModule::new(&path) };
             match res {
-                Ok(plug) => searchers.push(WrappedSearcher::new(plug, max_shown_per_searcher)),
+                Ok(plug) => searchers.push(WrappedSearcher::new(plug, max_shown)),
                 Err(e) => warn!("Failed to load library {path:?}: {e}"),
             }
         }
@@ -126,7 +126,6 @@ impl SearchThing {
             search_input,
             searchers,
             icon_path_cache: Default::default(),
-            max_shown_per_searcher,
             keyboard_idx: 0,
         }
     }
@@ -290,7 +289,7 @@ impl EguiInspect for SearchThing {
             );
         }
 
-        self.icon_path_cache.batch_find();
+        self.icon_path_cache.batch_find(5);
     }
 }
 

@@ -41,7 +41,6 @@ impl Default for SymbolsModule {
 }
 
 impl SearchModule for SymbolsModule {
-    // TODO: fuzzy matching
     fn queery(
         &self,
         input: &str,

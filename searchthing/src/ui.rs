@@ -1,25 +1,24 @@
-use std::collections::{BTreeMap, HashMap};
-
+use crate::{fonts::SYMBOLCACHE, icon_search::find_icons, ICONSIZE, STAY_OPEN};
 use egui_inspect::{
-    egui::{self, vec2, Color32, RichText, ScrollArea, Vec2},
+    egui::{self, ScrollArea, Vec2},
     EguiInspect, DEFAULT_FRAME_STYLE,
 };
 use searchthing_interface::{
     char_from_codepoint, MatchInfo, SearchItemHandle, SearchModule, SearcherInfo,
 };
-
-use crate::{fonts::SYMBOLCACHE, icon_search::find_icons, STAY_OPEN};
+use std::collections::{BTreeMap, HashMap};
 
 #[derive(Default)]
 pub struct AppIconPathCache {
     /// name to path map
     store: HashMap<String, Option<String>>,
-    // TODO: distinguish between IconName(String) and IconPath(String)
+    // TODO: should just use a built in priority queue?
     /// icons to search and find next, only a few per frame, newest added first
     requests: BTreeMap<u64, String>,
     req_no: u64,
 }
 
+// NOTE: using a hacky async mechanism, tied to egui eventloop for simplicity
 impl AppIconPathCache {
     pub fn get(&mut self, name: &String) -> Icon {
         if name.is_empty() {
@@ -48,10 +47,9 @@ impl AppIconPathCache {
             }
         }
     }
-    // gradual search left tied to gui event loop for simplicity
-    pub fn batch_find(&mut self) -> usize {
+    /// resolve a number of the newest requests
+    pub fn batch_find(&mut self, max_per_tick: usize) -> usize {
         let mut batch = vec![];
-        let max_per_tick = 5;
         for _ in 0..max_per_tick {
             if let Some((_, item)) = self.requests.pop_last() {
                 batch.push(item);
@@ -82,28 +80,25 @@ pub enum Icon<'a> {
 
 impl EguiInspect for Icon<'_> {
     fn inspect(&self, _label: &str, ui: &mut egui_inspect::egui::Ui) {
-        match self {
-            Icon::Searching { .. } => {
-                ui.label(RichText::new("⮔").color(Color32::BLUE))
-                    .on_hover_text("searching for icon");
-            }
-            Icon::NotFound => {
-                ui.label(RichText::new("⚠").color(Color32::RED))
-                    .on_hover_text("icon not found");
-            }
+        let is = ICONSIZE.with_borrow(|is| *is);
+        let unicode = match self {
+            Icon::Searching { .. } => Some('⮔'),
+            Icon::NotFound => Some('⚠'),
             Icon::Found { path } => {
                 ui.add(
                     egui::Image::new(format!("file://{path}"))
-                        .fit_to_exact_size(Vec2::new(48.0, 48.0)),
+                        .fit_to_exact_size(Vec2 { x: is, y: is }),
                 );
+                None
             }
-            Icon::None => {}
-            Icon::Unicode { c } => {
-                SYMBOLCACHE.with_borrow_mut(|sc| {
-                    sc.inspect(ui, *c, vec2(48.0, 48.0));
-                });
-            }
+            Icon::None => None,
+            Icon::Unicode { c } => Some(*c),
         };
+        if let Some(symbol) = unicode {
+            SYMBOLCACHE.with_borrow_mut(|sc| {
+                sc.inspect(ui, symbol, Vec2 { x: is, y: is });
+            });
+        }
     }
 }
 

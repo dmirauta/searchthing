@@ -46,7 +46,6 @@ impl Default for ApplicationsModule {
 }
 
 impl SearchModule for ApplicationsModule {
-    // TODO: fuzzy matching
     fn queery(
         &self,
         input: &str,

@@ -28,7 +28,6 @@ impl DmenuModule {
 }
 
 impl SearchModule for DmenuModule {
-    // TODO: fuzzy matching
     fn queery(
         &self,
         input: &str,

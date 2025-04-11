@@ -1,6 +1,7 @@
 use egui_inspect::{
     egui::{
-        ColorImage, FontData, FontDefinitions, FontFamily, Image, Sense, TextureHandle, Ui, Vec2,
+        vec2, Color32, ColorImage, FontData, FontDefinitions, FontFamily, Image, RichText, Sense,
+        TextureHandle, Ui, Vec2,
     },
     logging::log::info,
 };
@@ -24,40 +25,42 @@ fn get_font_path(font_name: &str) -> Option<PathBuf> {
 }
 
 thread_local! {
-    /// for use both directly in egui and via swash
+    /// for use both directly in egui and via swash (for single multicolor glyph previews)
     static STATICFONTS: RefCell<BTreeMap<String, &'static [u8]>> = Default::default();
 }
 
 /// stores font in STATICFONTS and registers it with egui
-fn add_font_data<'a>(font_defs: &mut FontDefinitions, font_name: &'a str) -> Option<&'a str> {
-    let font_path = get_font_path(font_name)?;
+fn add_font_data(font_defs: &mut FontDefinitions, font_name: String) -> Option<String> {
+    let font_path = get_font_path(font_name.as_str())?;
     info!("Loading {font_path:?}");
     let font_data_ = std::fs::read(font_path).ok()?;
     let sfd = font_data_.leak();
     STATICFONTS.with_borrow_mut(|sf| {
-        sf.insert(font_name.to_string(), sfd);
+        sf.insert(font_name.clone(), sfd);
     });
     let font_data = FontData::from_static(sfd);
     font_defs
         .font_data
-        .insert(font_name.into(), Arc::new(font_data));
+        .insert(font_name.clone(), Arc::new(font_data));
     Some(font_name)
 }
 
-pub fn custom_egui_font_def(main: Option<&str>, symbols: Option<&str>) -> FontDefinitions {
+pub fn custom_egui_font_def(main: Option<String>, symbols: Vec<String>) -> FontDefinitions {
     let mut font_defs = FontDefinitions::default();
     font_defs.families.clear();
     let my_font = match main.map(|mf| add_font_data(&mut font_defs, mf)) {
         Some(Some(name)) => name,
-        _ => "Ubuntu-Light",
+        _ => "Ubuntu-Light".to_string(),
     };
-    let extra_symbols = symbols.map(|sf| add_font_data(&mut font_defs, sf));
+    let extra_symbols = symbols
+        .into_iter()
+        .filter_map(|sf| add_font_data(&mut font_defs, sf));
     let mut default_fonts = vec![
-        my_font.to_string(),
+        my_font,
         "NotoEmoji-Regular".to_string(),
         "emoji-icon-font".to_string(),
     ];
-    if let Some(Some(es)) = extra_symbols {
+    for es in extra_symbols {
         default_fonts.insert(1, es.to_string());
     }
     font_defs
@@ -118,7 +121,15 @@ impl SymbolImageCache {
                 });
             }
             _ => {
-                ui.allocate_exact_size(size, Sense::empty());
+                let rt = RichText::from(format!("{symbol}"))
+                    .size(size.y)
+                    .color(Color32::WHITE);
+                let r = ui.label(rt).rect;
+                let s = ui.spacing().item_spacing.x;
+                let d = size.x - r.width() - s;
+                if d > 0.0 {
+                    ui.allocate_exact_size(vec2(d, 0.0), Sense::empty());
+                }
             }
         }
     }
